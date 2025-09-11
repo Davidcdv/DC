@@ -185,12 +185,6 @@
 
 })();
 document.addEventListener("DOMContentLoaded", function () {
-  const menuBtn = document.getElementById("mobile-menu-btn");
-  const navMenu = document.getElementById("nav-menu");
-
-  menuBtn.addEventListener("click", function () {
-    navMenu.classList.toggle("show");
-    menuBtn.classList.toggle("active"); // Toggles the "X" effect
-  });
+  // Using built-in template mobile toggle; no extra custom handler needed.
 });
 

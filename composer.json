@@ -1,0 +1,9 @@
+{
+  "name": "davidc/kelly-site",
+  "description": "Personal site with contact form using PHPMailer",
+  "type": "project",
+  "require": {
+    "phpmailer/phpmailer": "^6.9"
+  }
+}
+

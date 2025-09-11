@@ -1,41 +1,62 @@
 <?php
-  /**
-  * Requires the "PHP Email Form" library
-  * The "PHP Email Form" library is available only in the pro version of the template
-  * The library should be uploaded to: vendor/php-email-form/php-email-form.php
-  * For more info and help: https://bootstrapmade.com/php-email-form/
-  */
+// Contact form handler using PHPMailer with SMTP for Render deployment
 
-  // Replace contact@example.com with your real receiving email address
-  $receiving_email_address = 'davidmaxwell343@gmail.com';
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
-  if( file_exists($php_email_form = '../assets/vendor/php-email-form/php-email-form.php' )) {
-    include( $php_email_form );
-  } else {
-    die( 'Unable to load the "PHP Email Form" Library!');
-  }
+// Load Composer autoloader (installed via composer.json)
+$autoload = __DIR__ . '/../vendor/autoload.php';
+if (!file_exists($autoload)) {
+  http_response_code(500);
+  echo 'Composer autoload not found. Please add composer.json and deploy.';
+  exit;
+}
+require $autoload;
 
-  $contact = new PHP_Email_Form;
-  $contact->ajax = true;
-  
-  $contact->to = $receiving_email_address;
-  $contact->from_name = $_POST['name'];
-  $contact->from_email = $_POST['email'];
-  $contact->subject = $_POST['subject'];
+// Basic method and field validation
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+  http_response_code(405);
+  echo 'Invalid request method';
+  exit;
+}
 
-  // Uncomment below code if you want to use SMTP to send emails. You need to enter your correct SMTP credentials
-  /*
-  $contact->smtp = array(
-    'host' => 'example.com',
-    'username' => 'example',
-    'password' => 'pass',
-    'port' => '587'
-  );
-  */
+$name    = trim($_POST['name'] ?? '');
+$email   = trim($_POST['email'] ?? '');
+$subject = trim($_POST['subject'] ?? 'Contact Form');
+$message = trim($_POST['message'] ?? '');
 
-  $contact->add_message( $_POST['name'], 'From');
-  $contact->add_message( $_POST['email'], 'Email');
-  $contact->add_message( $_POST['message'], 'Message', 10);
+if ($name === '' || $email === '' || $message === '') {
+  http_response_code(422);
+  echo 'Missing required fields';
+  exit;
+}
 
-  echo $contact->send();
+$toEmail = getenv('CONTACT_TO_EMAIL') ?: 'you@example.com';
+
+$mail = new PHPMailer(true);
+try {
+  $mail->isSMTP();
+  $mail->Host       = getenv('SMTP_HOST');
+  $mail->SMTPAuth   = true;
+  $mail->Username   = getenv('SMTP_USERNAME');
+  $mail->Password   = getenv('SMTP_PASSWORD');
+  $mail->Port       = getenv('SMTP_PORT') ?: 587;
+  $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+
+  $fromAddress = getenv('SMTP_FROM') ?: $mail->Username;
+  $mail->setFrom($fromAddress, $name);
+  $mail->addReplyTo($email, $name);
+  $mail->addAddress($toEmail);
+
+  $mail->Subject = $subject;
+  $mail->Body    = "From: {$name} <{$email}>\n\n{$message}";
+  $mail->AltBody = $mail->Body;
+
+  $mail->send();
+  // The frontend validator expects the exact string 'OK' on success
+  echo 'OK';
+} catch (Exception $e) {
+  http_response_code(500);
+  echo 'Mailer Error';
+}
 ?>
